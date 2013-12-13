@@ -1,0 +1,81 @@
+#!/bin/bash
+
+# exit on first error
+set -e
+
+REPOS=$(realpath "$1")
+TXN="$2"
+
+SVNLOOK="/usr/bin/svnlook"
+JSHINT="/usr/bin/jshint"
+TMPDIR=$(mktemp -d)
+
+trap "rm -rf $TMPDIR" EXIT
+
+
+cd "$TMPDIR"
+
+_svnlook () {
+    cmd="$1"
+    shift
+    $SVNLOOK "$cmd" -t "$TXN" "$REPOS" "$@"
+}
+
+list_changed_files () {
+    _svnlook changed | awk '/^[UA]/ { print $2 }'
+}
+
+is_file () {
+    # All paths ending with a slash are directories
+    if [[ "$file" =~ /$ ]]; then
+        return 1
+    fi
+
+    proplist=$(_svnlook proplist "$1" 2> /dev/null || true)
+
+    # If proplist is empty, the file does not exist (an error occured). If it
+    # contains svn:special, this is a symlink.
+    if [[ -z $proplist ]] || [[ $proplist =~ svn:special ]]; then
+        return 1
+    fi
+
+    return 0
+}
+
+cp_file () {
+    path=$1
+    mkdir -p $(dirname "$path")
+    _svnlook cat "$path" > "$path"
+}
+
+cp_parent_file () {
+    path="$1"
+    filename="$2"
+
+    while ! [[ "$path" =~ ^\.?/?$ ]]; do
+        path=$(dirname $path)
+        fullpath="$path/$filename"
+        if is_file "$fullpath"; then
+            cp_file "$fullpath"
+            break
+        fi
+    done
+}
+
+# Iterate over all changed files
+while read file; do
+
+    # Ignore symlinks and directoryes
+    ! is_file "$file" && continue
+
+    # Ignore non js files
+    ! [[ "$file" =~ \.js$ ]] && continue
+
+    cp_file "$file"
+    cp_parent_file "$file" .jshintrc
+    cp_parent_file "$file" .jshintignore
+
+done < <(list_changed_files)
+
+# Run jshint
+HOME="$TMPDIR" $JSHINT . 1>&2
