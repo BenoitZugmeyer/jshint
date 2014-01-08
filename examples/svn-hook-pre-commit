@@ -68,8 +68,8 @@ while read file; do
     # Ignore symlinks and directoryes
     ! is_file "$file" && continue
 
-    # Ignore non js files
-    ! [[ "$file" =~ \.js$ ]] && continue
+    # Ignore non js or html files
+    ! [[ "$file" =~ \.(js|html|xhtml|htm)$ ]] && continue
 
     cp_file "$file"
     cp_parent_file "$file" .jshintrc
@@ -78,4 +78,4 @@ while read file; do
 done < <(list_changed_files)
 
 # Run jshint
-HOME="$TMPDIR" $JSHINT . 1>&2
+HOME="$TMPDIR" $JSHINT -e 'js,html,xhtml,htm' --extract auto . 1>&2
