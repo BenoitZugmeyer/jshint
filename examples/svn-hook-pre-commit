@@ -26,12 +26,14 @@ list_changed_files () {
 }
 
 is_file () {
+    path="$1"
+
     # All paths ending with a slash are directories
-    if [[ "$file" =~ /$ ]]; then
+    if [[ "$path" =~ /$ ]]; then
         return 1
     fi
 
-    proplist=$(_svnlook proplist "$1" 2> /dev/null || true)
+    proplist=$(_svnlook proplist "$path" 2> /dev/null || true)
 
     # If proplist is empty, the file does not exist (an error occured). If it
     # contains svn:special, this is a symlink.
