@@ -16,7 +16,7 @@ trap "rm -rf $TMPDIR" EXIT
 cd "$TMPDIR"
 
 _svnlook () {
-    cmd="$1"
+    local cmd="$1"
     shift
     $SVNLOOK "$cmd" -t "$TXN" "$REPOS" "$@"
 }
@@ -26,18 +26,18 @@ list_changed_files () {
 }
 
 is_file () {
-    path="$1"
+    local path="$1"
 
     # All paths ending with a slash are directories
     if [[ "$path" =~ /$ ]]; then
         return 1
     fi
 
-    proplist=$(_svnlook proplist "$path" 2> /dev/null || true)
+    proplist=$(_svnlook proplist "$path" 2> /dev/null)
 
-    # If proplist is empty, the file does not exist (an error occured). If it
-    # contains svn:special, this is a symlink.
-    if [[ -z $proplist ]] || [[ $proplist =~ svn:special ]]; then
+    # If the command failed, this is not a file. If it contains svn:special,
+    # this is a symlink.
+    if [[ $? -eq 1 ]] || [[ $proplist =~ svn:special ]]; then
         return 1
     fi
 
@@ -45,14 +45,14 @@ is_file () {
 }
 
 cp_file () {
-    path=$1
+    local path=$1
     mkdir -p $(dirname "$path")
     _svnlook cat "$path" > "$path"
 }
 
 cp_parent_file () {
-    path="$1"
-    filename="$2"
+    local path="$1"
+    local filename="$2"
 
     while ! [[ "$path" =~ ^\.?/?$ ]]; do
         path=$(dirname $path)
