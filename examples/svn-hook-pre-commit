@@ -59,9 +59,10 @@ cp_parent_file () {
         fullpath="$path/$filename"
         if is_file "$fullpath"; then
             cp_file "$fullpath"
-            break
+            return 0
         fi
     done
+    return 1
 }
 
 # Iterate over all changed files
@@ -73,9 +74,11 @@ while read file; do
     # Ignore non js or html files
     ! [[ "$file" =~ \.(js|html|xhtml|htm)$ ]] && continue
 
+    # Ignore the file if it doesn't have a .jshintrc in a parent folder
+    ! cp_parent_file "$file" .jshintrc && continue
+
     cp_file "$file"
-    cp_parent_file "$file" .jshintrc
-    cp_parent_file "$file" .jshintignore
+    cp_parent_file "$file" .jshintignore || true
 
 done < <(list_changed_files)
 
