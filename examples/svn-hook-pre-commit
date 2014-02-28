@@ -82,5 +82,12 @@ while read file; do
 
 done < <(list_changed_files)
 
+# jshint only reads the first .jshintignore it finds in the current directory. Aggregate all
+# .jshintignore we find into a root .jshintignore, and make paths relative to the root path
+while read ignorefile; do
+    dir=$(dirname "$ignorefile")
+    gawk 'match($0, /^(!?)(\S+)/, a) { print a[1] "'$dir'/" a[2] }' "$ignorefile"
+done < <(find -mindepth 2 -type f -name .jshintignore) >> .jshintignore
+
 # Run jshint
 HOME="$TMPDIR" $JSHINT -e 'js,html,xhtml,htm' --extract auto . 1>&2
