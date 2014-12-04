@@ -3214,6 +3214,12 @@ var JSHINT = (function () {
           } else if (nextVal === "set" && i && (!p || p.length !== 1)) {
             warning("W077", t, i);
           }
+        } else if (nextVal === "...") {
+          advance(nextVal);
+          if (!state.option.esnext) {
+            warning("W119", state.tokens.next, "spread/rest operator");
+          }
+          expression(10);
         } else {
           g = false;
           if (state.tokens.next.value === "*" && state.tokens.next.type === "(punctuator)") {
